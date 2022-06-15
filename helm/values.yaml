@@ -1,0 +1,41 @@
+global:
+  ## Override the release name
+  nameOverride:
+
+# For example "quarkus"
+runtime:
+
+image:
+  name:
+  tag: latest
+
+deploy:
+  replicas: 1
+  resources:
+#  limits:
+#    cpu: 100m
+#    memory: 256Mi
+#  requests:
+#    cpu: 50m
+#    memory: 128Mi
+
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080
+      protocol: TCP
+
+  livenessProbe:
+
+  readinessProbe:
+
+  env:
+  #  - name: VAR_NAME
+  #    value: var-value
+
+  route:
+    enabled: true
+    targetPort: http
+    ## More information: https://docs.openshift.com/container-platform/4.10/networking/routes/secured-routes.html
+    tls:
+      enabled: false

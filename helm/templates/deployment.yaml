@@ -1,0 +1,41 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "quarkus.name" . }}
+  labels:
+    {{- include "quarkus.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.deploy.replicas }}
+  selector:
+    matchLabels:
+      {{- include "quarkus.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "quarkus.labels" . | nindent 8 }}
+    spec:
+      containers:
+        - name: web
+          image: {{ include "quarkus.imageName" . }}
+          ports:
+{{- range .Values.deploy.ports }}
+            - name: {{ .name }}
+              containerPort: {{ .targetPort }}
+              protocol: {{ .protocol }}
+{{- end }}
+{{- if .Values.deploy.resources }}
+          resources:
+            {{- toYaml .Values.deploy.resources | nindent 12 }}
+{{- end }}
+{{- if .Values.deploy.livenessProbe }}
+          livenessProbe:
+            {{- tpl (toYaml .Values.deploy.livenessProbe) . | nindent 12 }}
+{{- end }}
+{{- if .Values.deploy.readinessProbe }}
+          readinessProbe:
+            {{- tpl (toYaml .Values.deploy.readinessProbe) . | nindent 12 }}
+{{- end }}
+{{- if .Values.deploy.env }}
+          env:
+            {{- tpl (toYaml .Values.deploy.env) . | nindent 12 }}
+{{- end }}
