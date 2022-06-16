@@ -3,7 +3,7 @@
 {{- end -}}
 
 {{- define "quarkus.labels" -}}
-helm.sh/chart: {{ .Chart.Name }}:{{ .Chart.Version}}
+helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version}}
 {{ include "quarkus.selectorLabels" . }}
 {{- if .Chart.AppVersion }}
 app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}

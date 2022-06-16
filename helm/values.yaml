@@ -39,3 +39,6 @@ deploy:
     ## More information: https://docs.openshift.com/container-platform/4.10/networking/routes/secured-routes.html
     tls:
       enabled: false
+
+service:
+  port: 8080
