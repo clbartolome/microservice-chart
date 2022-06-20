@@ -1,0 +1,28 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: integration-tests
+spec:
+  workspaces:
+  - name: source
+  params:
+  - name: NAMESPACE
+    type: string
+  - name: TEST_APP
+    type: string
+  - name: TEST_FILE
+    type: string
+  steps:
+  - name: tests
+    image: image-registry.openshift-image-registry.svc:5000/openshift/cli:latest
+    workingDir: $(workspaces.source.path)/.
+    script: |
+      ./$(params.TEST_FILE) $(params.TEST_APP) $(params.NAMESPACE)
+
+      RESULT=$(echo $?)
+      if [ "$RESULT" -ne 0 ] 
+      then
+        exit 1
+      fi 
+
+      exit 0

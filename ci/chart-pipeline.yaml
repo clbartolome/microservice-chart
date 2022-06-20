@@ -1,0 +1,120 @@
+apiVersion: tekton.dev/v1beta1
+kind: Pipeline
+metadata:
+  name: chart-pipeline
+spec:
+  params:
+  - name: SOURCE_GIT_URL
+    type: string
+    description: The application git repository
+    default: https://github.com/clbartolome/microservice-chart
+  - name: SOURCE_GIT_REVISION
+    type: string
+    description: The application git revision
+    default: master
+  - name: NAMESPACE
+    type: string
+    description: The namespace used for testing
+    default: helm-build
+  - name: CICD_NAMESPACE
+    type: string
+    description: The cicd namespace
+    default: helm-build
+  - name: TEST_APP
+    type: string
+    description: The app name used for testing
+    default: test-app
+  - name: HELM_CHART_NAME
+    type: string
+    description: The helm chart name
+    default: microservice-chart
+  workspaces:
+  - name: app-source
+  tasks:
+# ------------ CLONE REPOSITORY ------------ #
+  - name: clone-repo
+    taskRef:
+      kind: ClusterTask
+      name: git-clone
+    params:
+    - name: url
+      value: $(params.SOURCE_GIT_URL)
+    - name: revision
+      value: $(params.SOURCE_GIT_REVISION)
+    - name: deleteExisting
+      value: 'true'
+    workspaces:
+    - name: output
+      workspace: app-source
+# ------------ CREATE EPHEMERAL NAMESPACE ------------ #
+  - name: ephemeral-namespace
+    taskRef:
+      kind: Task
+      name: create-namespace
+    params:
+    - name: NAMESPACE
+      value: $(params.NAMESPACE)-$(context.pipelineRun.name)
+# ------------BUILD TEST APP ------------ #
+  - name: build-test-app
+    runAfter:
+    - clone-repo
+    - ephemeral-namespace
+    taskRef:
+      kind: ClusterTask
+      name: s2i-java
+    params:
+      - name: IMAGE
+        value: image-registry.openshift-image-registry.svc:5000/$(params.NAMESPACE)-$(context.pipelineRun.name)/test-app
+      - name: PATH_CONTEXT
+        value: test-application
+    workspaces:
+    - name: source
+      workspace: app-source
+# ------------ BUILD HELM ------------ #
+  - name: build-helm
+    runAfter:
+    - build-test-app
+    taskRef:
+      kind: Task
+      name: helm-build
+    params:
+      - name: NAMESPACE
+        value: $(params.NAMESPACE)-$(context.pipelineRun.name)
+      - name: TEST_APP
+        value: $(params.TEST_APP)
+      - name: HELM_CHART_NAME
+        value: $(params.HELM_CHART_NAME)
+      - name: TEST_IMAGE
+        value: image-registry.openshift-image-registry.svc:5000/$(params.NAMESPACE)-$(context.pipelineRun.name)/test-app
+      - name: VALUES_FILE
+        value: test-application/helm/values.yaml
+    workspaces:
+    - name: source
+      workspace: app-source
+# ------------ INTEGRATION TESTS ------------ #
+  - name: integration-tests
+    runAfter:
+    - build-helm
+    taskRef:
+      kind: Task
+      name: integration-tests
+    params:
+      - name: NAMESPACE
+        value: $(params.NAMESPACE)-$(context.pipelineRun.name)
+      - name: TEST_APP
+        value: $(params.TEST_APP)
+      - name: TEST_FILE
+        value: test-application/helm/integration-tests.sh
+    workspaces:
+    - name: source
+      workspace: app-source
+# ------------ CLEAN UP ------------ #
+  finally:
+  - name: cleanup
+    taskRef:
+      name: clean-up
+    params:
+    - name: TEST_APP
+      value: $(params.TEST_APP)
+    - name: NAMESPACE
+      value: $(params.NAMESPACE)-$(context.pipelineRun.name)

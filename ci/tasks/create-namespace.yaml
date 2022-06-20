@@ -1,0 +1,21 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: create-namespace
+spec:
+  params:
+  - name: NAMESPACE
+    type: string
+  steps:
+  - name: create-namespace
+    image: image-registry.openshift-image-registry.svc:5000/openshift/cli:latest
+    script: |
+      #!/usr/bin/env bash
+
+      oc new-project $(params.NAMESPACE)
+  - name: manage-roles
+    image: image-registry.openshift-image-registry.svc:5000/openshift/cli:latest
+    script: |
+      #!/usr/bin/env bash
+
+      oc policy add-role-to-user edit system:serviceaccount:$(context.taskRun.namespace):pipeline -n $(params.NAMESPACE)

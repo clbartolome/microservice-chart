@@ -1,0 +1,24 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: clean-up
+spec:
+  params:
+  - name: NAMESPACE
+    type: string
+  - name: TEST_APP
+    type: string
+  steps:
+  - name: uninstall-test-app
+    image: docker.io/lachlanevenson/k8s-helm:latest
+    onError: continue
+    script: |      
+      echo "Removing Helm test app..."
+      helm uninstall $(params.TEST_APP) -n $(params.NAMESPACE)
+  - name: delete-namespace
+    image: image-registry.openshift-image-registry.svc:5000/openshift/cli:latest
+    onError: continue
+    script: |
+      #!/usr/bin/env bash
+
+      oc delete project $(params.NAMESPACE)

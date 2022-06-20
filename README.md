@@ -68,3 +68,9 @@ timeoutSeconds: 1
 <tr><td>deploy.route.targetPort</td><td>Route target port</td><td>http</td></tr>
 <tr><td>deploy.route.tls.enabled</td><td>TLS route</td><td>false</td></tr>
 </table>
+
+
+
+
+
+oc adm policy add-cluster-role-to-user self-provisioner -z pipeline -n cicd
